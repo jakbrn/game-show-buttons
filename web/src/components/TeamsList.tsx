@@ -79,16 +79,12 @@ export function TeamsList() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleCreateTeam = async (name: string, deviceIp?: string) => {
-    await createTeam(name, deviceIp);
+  const handleCreateTeam = async (name: string) => {
+    await createTeam(name);
   };
 
-  const handleUpdateTeam = async (
-    id: string,
-    name: string,
-    deviceIp?: string
-  ) => {
-    await updateTeam(id, name, deviceIp);
+  const handleUpdateTeam = async (id: string, name: string) => {
+    await updateTeam(id, name);
   };
 
   const handleDeleteTeam = async (id: string) => {
@@ -141,45 +137,58 @@ export function TeamsList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Team Name</TableHead>
-                <TableHead>Device Status</TableHead>
-                <TableHead>Device IP</TableHead>
+                <TableHead>Points</TableHead>
+                <TableHead>Players</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {teams.map((team) => {
-                const isPressed = (team.deviceIp || 1) === pressedDevice;
+                const pressedPlayer = team.players?.find((p) => !!p.deviceIp && !!pressedDevice && p.deviceIp === pressedDevice);
+                
                 return (
-                  <TableRow
-                    key={team.id}
-                    className={
-                      isPressed ? "bg-yellow-50 border-yellow-200" : ""
-                    }
-                  >
+                  <TableRow key={team.id}>
                     <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {team.name}
-                        {isPressed && (
-                          <Badge
-                            variant="destructive"
-                            className="animate-pulse"
-                          >
-                            <Zap className="h-3 w-3 mr-1" />
-                            PRESSED!
-                          </Badge>
-                        )}
-                      </div>
+                      {team.name}
                     </TableCell>
                     <TableCell>
-                      {team.deviceIp && devices.includes(team.deviceIp) ? (
+                      <Badge variant="outline" className="text-lg font-bold">
+                        {team.points || 0}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {team.players && team.players.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {team.players.map((player) => {
+                            const isPressed = !!player.deviceIp && !!pressedDevice && player.deviceIp === pressedDevice;
+                            return (
+                              <Badge
+                                key={player.id}
+                                variant={isPressed ? "destructive" : "secondary"}
+                                className={isPressed ? "animate-pulse" : ""}
+                              >
+                                {isPressed && <Zap className="h-3 w-3 mr-1" />}
+                                {player.name}
+                                {isPressed && " - PRESSED!"}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">No players</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {team.players && team.players.some(p => p.deviceIp && devices.includes(p.deviceIp)) ? (
                         <Badge
-                          variant={isPressed ? "destructive" : "default"}
+                          variant={pressedPlayer ? "destructive" : "default"}
                           className="flex items-center w-fit"
                         >
                           <Wifi className="h-3 w-3 mr-1" />
-                          {isPressed ? "Active" : "Connected"}
+                          {pressedPlayer ? "Active" : "Connected"}
                         </Badge>
-                      ) : team.deviceIp ? (
+                      ) : team.players && team.players.some(p => p.deviceIp) ? (
                         <Badge
                           variant="destructive"
                           className="flex items-center w-fit"
@@ -193,24 +202,15 @@ export function TeamsList() {
                           className="flex items-center w-fit"
                         >
                           <WifiOff className="h-3 w-3 mr-1" />
-                          No Device
+                          No Devices
                         </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {team.deviceIp || (
-                        <span className="text-muted-foreground">
-                          Not assigned
-                        </span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <TeamForm
                           team={team}
-                          onSubmit={(name, deviceIp) =>
-                            handleUpdateTeam(team.id, name, deviceIp)
-                          }
+                          onSubmit={(name) => handleUpdateTeam(team.id, name)}
                         />
                         <Button
                           variant="outline"

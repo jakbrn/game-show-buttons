@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Timer } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useWebSocket } from "@/hooks/useWebSocketHook";
 
@@ -17,8 +17,9 @@ export function GameStatus() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pressedButton, setPressedButton] = useState<string | null>(null);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
 
-  const { lastMessage, sendMessage, connectionError } = useWebSocket();
+  const { lastMessage, connectionError, sendMessage } = useWebSocket();
 
   const fetchDevices = async () => {
     try {
@@ -41,6 +42,11 @@ export function GameStatus() {
     setDevices((prev) => prev.filter((d) => d !== ip));
   };
 
+  const startTimer = () => {
+    sendMessage({ type: "startTimer", duration: 15 });
+    setIsTimerRunning(true);
+  };
+
   // Handle WebSocket messages
   useEffect(() => {
     if (lastMessage) {
@@ -61,14 +67,15 @@ export function GameStatus() {
         case "reset":
           setPressedButton(null);
           break;
+        case "timerStart":
+          setIsTimerRunning(true);
+          break;
+        case "timerEnd":
+          setIsTimerRunning(false);
+          break;
       }
     }
   }, [lastMessage]);
-
-  const handleReset = () => {
-    sendMessage({ type: "reset" });
-    setPressedButton(null);
-  };
 
   useEffect(() => {
     fetchDevices();
@@ -99,11 +106,15 @@ export function GameStatus() {
               />
               Refresh
             </Button>
-            {pressedButton && (
-              <Button variant="destructive" size="sm" onClick={handleReset}>
-                Reset Game
-              </Button>
-            )}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={startTimer}
+              disabled={isTimerRunning}
+            >
+              <Timer className="h-4 w-4 mr-2" />
+              Start Timer (15s)
+            </Button>
           </div>
         </div>
       </CardHeader>

@@ -15,7 +15,7 @@ import { Plus, Edit } from "lucide-react";
 import type { Team } from "@/lib/api";
 
 interface TeamFormProps {
-  onSubmit: (name: string, deviceIp?: string) => Promise<void>;
+  onSubmit: (name: string) => Promise<void>;
   team?: Team;
   trigger?: React.ReactNode;
 }
@@ -23,7 +23,6 @@ interface TeamFormProps {
 export function TeamForm({ onSubmit, team, trigger }: TeamFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(team?.name || "");
-  const [deviceIp, setDeviceIp] = useState(team?.deviceIp || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,11 +31,10 @@ export function TeamForm({ onSubmit, team, trigger }: TeamFormProps) {
 
     setIsSubmitting(true);
     try {
-      await onSubmit(name.trim(), deviceIp.trim() || undefined);
+      await onSubmit(name.trim());
       setIsOpen(false);
       if (!team) {
         setName("");
-        setDeviceIp("");
       }
     } catch (error) {
       console.error("Failed to submit form:", error);
@@ -82,18 +80,6 @@ export function TeamForm({ onSubmit, team, trigger }: TeamFormProps) {
                 className="col-span-3"
                 placeholder="Team name"
                 required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="deviceIp" className="text-right">
-                Device IP
-              </Label>
-              <Input
-                id="deviceIp"
-                value={deviceIp}
-                onChange={(e) => setDeviceIp(e.target.value)}
-                className="col-span-3"
-                placeholder="192.168.1.100 (optional)"
               />
             </div>
           </div>

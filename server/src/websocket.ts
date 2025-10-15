@@ -5,6 +5,10 @@ import { devices, getPressedButton, setPressedButton } from "./devices";
 // Heartbeat configuration
 const HEARTBEAT_INTERVAL = 5000; // 5 seconds
 
+// Timer state
+let timerInterval: NodeJS.Timeout | null = null;
+let timerActive = false;
+
 interface ExtendedWebSocket extends WebSocket {
   isAlive?: boolean;
   heartbeatTimer?: NodeJS.Timeout;
@@ -13,6 +17,52 @@ interface ExtendedWebSocket extends WebSocket {
 
 export function createWebSocketServer(httpServer: Server) {
   const wss = new WebSocketServer({ server: httpServer });
+
+  // Function to start timer
+  function startTimer(duration: number) {
+    if (timerActive) {
+      console.log("Timer already running");
+      return;
+    }
+
+    timerActive = true;
+    let timeRemaining = duration;
+
+    // Broadcast timer start
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: "timerStart", timeRemaining }));
+      }
+    });
+
+    // Set up interval to countdown
+    timerInterval = setInterval(() => {
+      timeRemaining--;
+
+      // Broadcast tick
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({ type: "timerTick", timeRemaining }));
+        }
+      });
+
+      // Check if timer finished
+      if (timeRemaining <= 0) {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        timerActive = false;
+
+        // Broadcast timer end
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: "timerEnd" }));
+          }
+        });
+      }
+    }, 1000);
+  }
 
   // Function to handle client disconnection
   function handleClientDisconnect(
@@ -118,6 +168,10 @@ export function createWebSocketServer(httpServer: Server) {
               }
             });
             break;
+          case "startTimer":
+            console.log(`Timer start requested with duration: ${parsedMessage.duration || 15}`);
+            startTimer(parsedMessage.duration || 15);
+            break;
         }
       } catch (error) {
         console.error("Invalid JSON received:", message);
@@ -131,7 +185,13 @@ export function createWebSocketServer(httpServer: Server) {
 
     ws.on("error", (error) => {
       console.error("WebSocket error:", error);
+      handleClientDisconnect(ws, "error");
     });
+  });
+
+  // Handle WebSocket server errors
+  wss.on("error", (error) => {
+    console.error("WebSocket Server error:", error);
   });
 
   console.log("WebSocket server created");

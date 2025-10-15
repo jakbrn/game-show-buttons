@@ -21,9 +21,14 @@ export function createUdpServer(port: number = 8888) {
           remote.address
         );
       }
-    } catch {
+    } catch (error) {
       // Ignore JSON parsing errors
+      console.error("UDP message parsing error:", error);
     }
+  });
+
+  socket.on("error", (error) => {
+    console.error("UDP socket error:", error);
   });
 
   socket.bind(port);

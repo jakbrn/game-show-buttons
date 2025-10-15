@@ -19,10 +19,10 @@ export function useTeams() {
     }
   };
 
-  const createTeam = async (name: string, deviceIp?: string) => {
+  const createTeam = async (name: string) => {
     try {
       setError(null);
-      const newTeam = await apiClient.createTeam(name, deviceIp);
+      const newTeam = await apiClient.createTeam(name);
       setTeams((prev) => [...prev, newTeam]);
       return newTeam;
     } catch (err) {
@@ -31,16 +31,28 @@ export function useTeams() {
     }
   };
 
-  const updateTeam = async (id: string, name: string, deviceIp?: string) => {
+  const updateTeam = async (id: string, name: string) => {
     try {
       setError(null);
-      const updatedTeam = await apiClient.updateTeam(id, name, deviceIp);
+      const updatedTeam = await apiClient.updateTeam(id, name);
       setTeams((prev) =>
         prev.map((team) => (team.id === id ? updatedTeam : team))
       );
       return updatedTeam;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update team");
+      throw err;
+    }
+  };
+
+  const addPoints = async (teamId: string, pointsToAdd: number) => {
+    try {
+      setError(null);
+      const updatedTeam = await apiClient.patchTeamPoints(teamId, pointsToAdd);
+      setTeams((prev) => prev.map((t) => (t.id === teamId ? updatedTeam : t)));
+      return updatedTeam;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add points");
       throw err;
     }
   };
@@ -68,5 +80,6 @@ export function useTeams() {
     createTeam,
     updateTeam,
     deleteTeam,
+    addPoints,
   };
 }

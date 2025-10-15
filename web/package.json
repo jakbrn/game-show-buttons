@@ -1,8 +1,12 @@
 {
   "name": "game-show-buttons",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
+  "description": "A React-based web interface for managing teams and monitoring device connections in the game show button system.",
+  "license": "ISC",
+  "author": "",
   "type": "module",
+  "main": "eslint.config.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -21,6 +25,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.64.0",
+    "react-router-dom": "^7.9.4",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.14",
     "zod": "^4.1.12"

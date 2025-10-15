@@ -6,9 +6,13 @@ export interface WebSocketMessage {
     | "deviceDisconnected"
     | "buttonPressed"
     | "reset"
-    | "ledControl";
+    | "ledControl"
+    | "timerStart"
+    | "timerTick"
+    | "timerEnd";
   ip?: string;
   action?: string;
+  timeRemaining?: number;
 }
 
 export interface WebSocketContextType {

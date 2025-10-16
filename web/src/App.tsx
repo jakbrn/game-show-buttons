@@ -1,7 +1,14 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+} from "react-router-dom";
 import { TeamsList } from "./components/TeamsList";
 import { PlayersList } from "./components/PlayersList";
 import { GameStatus } from "./components/GameStatus";
+import { TimerControl } from "./components/TimerControl";
 import { Leaderboard } from "./components/Leaderboard";
 import { WebSocketProvider } from "./hooks/useWebSocket";
 import { useTeams } from "./hooks/useTeams";
@@ -21,7 +28,7 @@ function App() {
 function AppContent() {
   const { teams, refetch } = useTeams();
   const location = useLocation();
-  const isLeaderboard = location.pathname === '/leaderboard';
+  const isLeaderboard = location.pathname === "/leaderboard";
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,7 +38,7 @@ function AppContent() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold">Game Show Control Panel</h1>
-              <Link to="/leaderboard">
+              <Link to="/leaderboard" target="_blank" rel="noopener noreferrer">
                 <Button variant="default" size="lg">
                   <Trophy className="h-5 w-5 mr-2" />
                   View Leaderboard
@@ -43,32 +50,35 @@ function AppContent() {
       )}
 
       <Routes>
-        <Route path="/" element={
-          <div className="container mx-auto py-8 px-4">
-            <div className="mb-8">
-              <h2 className="text-4xl font-bold text-center mb-2">
-                Game Show Button System
-              </h2>
-              <p className="text-muted-foreground text-center">
-                Manage teams, players, and monitor device connections for your game show
-              </p>
-            </div>
+        <Route
+          path="/"
+          element={
+            <div className="container mx-auto py-8 px-4">
+              <div className="mb-8">
+                <h2 className="text-4xl font-bold text-center mb-2">
+                  Game Show Button System
+                </h2>
+                <p className="text-muted-foreground text-center">
+                  Manage teams, players, and monitor device connections for your
+                  game show
+                </p>
+              </div>
 
-            <div className="grid gap-6">
-              <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <TeamsList />
+              <div className="grid gap-6">
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="lg:col-span-2 space-y-6">
+                    <TeamsList />
+                    <PlayersList teams={teams} onRefreshTeams={refetch} />
+                  </div>
+                  <div className="space-y-6">
+                    <TimerControl />
+                    <GameStatus />
+                  </div>
                 </div>
-                <div>
-                  <GameStatus />
-                </div>
-              </div>
-              <div>
-                <PlayersList teams={teams} onRefreshTeams={refetch} />
               </div>
             </div>
-          </div>
-        } />
+          }
+        />
         <Route path="/leaderboard" element={<Leaderboard />} />
       </Routes>
     </div>

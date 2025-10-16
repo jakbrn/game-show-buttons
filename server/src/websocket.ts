@@ -64,6 +64,21 @@ export function createWebSocketServer(httpServer: Server) {
     }, 1000);
   }
 
+  function resetTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    timerActive = false;
+
+    // Broadcast reset
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: "timerEnd" }));
+      }
+    });
+  }
+
   // Function to handle client disconnection
   function handleClientDisconnect(
     ws: ExtendedWebSocket,
@@ -169,8 +184,16 @@ export function createWebSocketServer(httpServer: Server) {
             });
             break;
           case "startTimer":
-            console.log(`Timer start requested with duration: ${parsedMessage.duration || 15}`);
+            console.log(
+              `Timer start requested with duration: ${
+                parsedMessage.duration || 15
+              }`
+            );
             startTimer(parsedMessage.duration || 15);
+            break;
+          case "resetTimer":
+            console.log("Timer reset requested");
+            resetTimer();
             break;
         }
       } catch (error) {

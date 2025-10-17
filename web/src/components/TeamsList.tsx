@@ -26,7 +26,7 @@ export function TeamsList() {
   const [devices, setDevices] = useState<string[]>([]);
   const { teams, loading, error, createTeam, updateTeam, deleteTeam, refetch } =
     useTeams();
-  const { lastMessage } = useWebSocket();
+  const { lastMessage, sendMessage } = useWebSocket();
   const [pressedDevice, setPressedDevice] = useState<string | null>(null);
 
   const fetchDevices = async () => {
@@ -45,6 +45,10 @@ export function TeamsList() {
 
   const removeDevice = (ip: string) => {
     setDevices((prev) => prev.filter((d) => d !== ip));
+  };
+
+  const resetPressedDevice = () => {
+    sendMessage({ type: "reset" });
   };
 
   // Handle WebSocket messages
@@ -118,6 +122,16 @@ export function TeamsList() {
               Refresh
             </Button>
             <TeamForm onSubmit={handleCreateTeam} />
+            {pressedDevice && (
+              <Button
+                variant="destructive"
+                onClick={resetPressedDevice}
+                size="sm"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Reset Pressed
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -145,13 +159,16 @@ export function TeamsList() {
             </TableHeader>
             <TableBody>
               {teams.map((team) => {
-                const pressedPlayer = team.players?.find((p) => !!p.deviceIp && !!pressedDevice && p.deviceIp === pressedDevice);
-                
+                const pressedPlayer = team.players?.find(
+                  (p) =>
+                    !!p.deviceIp &&
+                    !!pressedDevice &&
+                    p.deviceIp === pressedDevice
+                );
+
                 return (
                   <TableRow key={team.id}>
-                    <TableCell className="font-medium">
-                      {team.name}
-                    </TableCell>
+                    <TableCell className="font-medium">{team.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-lg font-bold">
                         {team.points || 0}
@@ -161,11 +178,16 @@ export function TeamsList() {
                       {team.players && team.players.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {team.players.map((player) => {
-                            const isPressed = !!player.deviceIp && !!pressedDevice && player.deviceIp === pressedDevice;
+                            const isPressed =
+                              !!player.deviceIp &&
+                              !!pressedDevice &&
+                              player.deviceIp === pressedDevice;
                             return (
                               <Badge
                                 key={player.id}
-                                variant={isPressed ? "destructive" : "secondary"}
+                                variant={
+                                  isPressed ? "destructive" : "secondary"
+                                }
                                 className={isPressed ? "animate-pulse" : ""}
                               >
                                 {isPressed && <Zap className="h-3 w-3 mr-1" />}
@@ -176,11 +198,16 @@ export function TeamsList() {
                           })}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground text-sm">No players</span>
+                        <span className="text-muted-foreground text-sm">
+                          No players
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {team.players && team.players.some(p => p.deviceIp && devices.includes(p.deviceIp)) ? (
+                      {team.players &&
+                      team.players.some(
+                        (p) => p.deviceIp && devices.includes(p.deviceIp)
+                      ) ? (
                         <Badge
                           variant={pressedPlayer ? "destructive" : "default"}
                           className="flex items-center w-fit"
@@ -188,7 +215,8 @@ export function TeamsList() {
                           <Wifi className="h-3 w-3 mr-1" />
                           {pressedPlayer ? "Active" : "Connected"}
                         </Badge>
-                      ) : team.players && team.players.some(p => p.deviceIp) ? (
+                      ) : team.players &&
+                        team.players.some((p) => p.deviceIp) ? (
                         <Badge
                           variant="destructive"
                           className="flex items-center w-fit"

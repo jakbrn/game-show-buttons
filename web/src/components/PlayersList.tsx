@@ -36,25 +36,27 @@ interface PlayersListProps {
 
 export function PlayersList({ teams, onRefreshTeams }: PlayersListProps) {
   const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pressedDevice, setPressedDevice] = useState<string | null>(null);
   const { lastMessage, sendMessage } = useWebSocket();
 
   const fetchPlayers = async () => {
     try {
-      setLoading(true);
       setError(null);
       const data = await apiClient.getPlayers();
       setPlayers(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch players");
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
+    const fetchPressedButton = async () => {
+      const { pressedButton } = await apiClient.getPressedButton();
+      setPressedDevice(pressedButton);
+    };
+
+    fetchPressedButton();
     fetchPlayers();
   }, []);
 
@@ -72,7 +74,11 @@ export function PlayersList({ teams, onRefreshTeams }: PlayersListProps) {
     }
   }, [lastMessage]);
 
-  const handleCreatePlayer = async (name: string, teamId?: string, deviceIp?: string) => {
+  const handleCreatePlayer = async (
+    name: string,
+    teamId?: string,
+    deviceIp?: string
+  ) => {
     try {
       const newPlayer = await apiClient.createPlayer(name, teamId, deviceIp);
       setPlayers((prev) => [...prev, newPlayer]);
@@ -90,7 +96,12 @@ export function PlayersList({ teams, onRefreshTeams }: PlayersListProps) {
     deviceIp?: string
   ) => {
     try {
-      const updatedPlayer = await apiClient.updatePlayer(id, name, teamId, deviceIp);
+      const updatedPlayer = await apiClient.updatePlayer(
+        id,
+        name,
+        teamId,
+        deviceIp
+      );
       setPlayers((prev) => prev.map((p) => (p.id === id ? updatedPlayer : p)));
       onRefreshTeams(); // Refresh teams to show updated players
     } catch (err) {
@@ -106,7 +117,9 @@ export function PlayersList({ teams, onRefreshTeams }: PlayersListProps) {
         setPlayers((prev) => prev.filter((p) => p.id !== id));
         onRefreshTeams(); // Refresh teams to show updated players
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to delete player");
+        setError(
+          err instanceof Error ? err.message : "Failed to delete player"
+        );
         throw err;
       }
     }
@@ -128,13 +141,16 @@ export function PlayersList({ teams, onRefreshTeams }: PlayersListProps) {
 
     const handleGivePoints = async () => {
       try {
-        await apiClient.patchTeamPoints(team.id, (team.points || 0) + points);
+        await apiClient.patchTeamPoints(
+          team.id,
+          Math.max(0, (team.points || 0) + points)
+        );
         setOpen(false);
         setPoints(1);
-        
+
         // Send reset command to clear button press
         sendMessage({ type: "reset" });
-        
+
         // Refresh data to show updated points
         fetchPlayers();
         onRefreshTeams();
@@ -154,14 +170,20 @@ export function PlayersList({ teams, onRefreshTeams }: PlayersListProps) {
           <DialogHeader>
             <DialogTitle>Give Points</DialogTitle>
             <DialogDescription>
-              {player.name} from team {team.name} pressed the button! How many points to award?
+              {player.name} from team {team.name} pressed the button! How many
+              points to award?
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center gap-4 py-4">
-            <Button onClick={() => setPoints(Math.max(1, points - 1))} variant="outline">
+            <Button
+              onClick={() => setPoints(Math.max(-1, points - 1))}
+              variant="outline"
+            >
               -
             </Button>
-            <span className="text-4xl font-bold w-20 text-center">{points}</span>
+            <span className="text-4xl font-bold w-20 text-center">
+              {points}
+            </span>
             <Button onClick={() => setPoints(points + 1)} variant="outline">
               +
             </Button>
@@ -175,14 +197,7 @@ export function PlayersList({ teams, onRefreshTeams }: PlayersListProps) {
         </DialogContent>
       </Dialog>
     );
-  };  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading players...</span>
-      </div>
-    );
-  }
+  };
 
   return (
     <Card>
@@ -228,62 +243,78 @@ export function PlayersList({ teams, onRefreshTeams }: PlayersListProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {players.map((player) => {
-                const teamName = getTeamName(player.teamId || undefined);
-                const isPressed = !!player.deviceIp && !!pressedDevice && player.deviceIp === pressedDevice;
-                return (
-                  <TableRow 
-                    key={player.id}
-                    className={isPressed ? "bg-yellow-100" : ""}
-                  >
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {player.name}
-                        {isPressed && (
-                          <Badge variant="default" className="bg-yellow-500">
-                            <Zap className="h-3 w-3 mr-1" />
-                            PRESSED!
-                          </Badge>
+              {players
+                .sort(
+                  (a, b) =>
+                    a.teamId?.localeCompare(b.teamId || "") ||
+                    a.name.localeCompare(b.name)
+                )
+                .map((player) => {
+                  const teamName = getTeamName(player.teamId || undefined);
+                  const isPressed =
+                    !!player.deviceIp &&
+                    !!pressedDevice &&
+                    player.deviceIp === pressedDevice;
+                  return (
+                    <TableRow
+                      key={player.id}
+                      className={isPressed ? "bg-yellow-100" : ""}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {player.name}
+                          {isPressed && (
+                            <Badge variant="default" className="bg-yellow-500">
+                              <Zap className="h-3 w-3 mr-1" />
+                              PRESSED!
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {teamName ? (
+                          <Badge variant="default">{teamName}</Badge>
+                        ) : (
+                          <Badge variant="secondary">No team</Badge>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {teamName ? (
-                        <Badge variant="default">{teamName}</Badge>
-                      ) : (
-                        <Badge variant="secondary">No team</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {player.deviceIp || (
-                        <span className="text-muted-foreground">Not assigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {isPressed && player.teamId && (
-                          <GivePointButton player={player} />
+                      </TableCell>
+                      <TableCell>
+                        {player.deviceIp || (
+                          <span className="text-muted-foreground">
+                            Not assigned
+                          </span>
                         )}
-                        <PlayerForm
-                          player={player}
-                          teams={teams}
-                          onSubmit={(name, teamId, deviceIp) =>
-                            handleUpdatePlayer(player.id, name, teamId, deviceIp)
-                          }
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeletePlayer(player.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {isPressed && player.teamId && (
+                            <GivePointButton player={player} />
+                          )}
+                          <PlayerForm
+                            player={player}
+                            teams={teams}
+                            onSubmit={(name, teamId, deviceIp) =>
+                              handleUpdatePlayer(
+                                player.id,
+                                name,
+                                teamId,
+                                deviceIp
+                              )
+                            }
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeletePlayer(player.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
             </TableBody>
           </Table>
         )}
